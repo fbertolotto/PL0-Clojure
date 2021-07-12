@@ -817,8 +817,24 @@
 ; user=> (aplicar-aritmetico + '[a b c])
 ; [a b c]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn aplicar-aritmetico [op pila])
-
+(defn aplicar-aritmetico [op pila]
+  (if (and ( > (count pila) 1) (not (symbol? op)))
+    (let [ultimo (last pila) anteultimo (last (butlast pila))]
+      (if (and 
+          (integer? ultimo) (integer? anteultimo)
+          )
+        (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
+          (if (number? resultado)
+            (vec (concat (drop-last 2 pila) [(int resultado)]))
+            pila ;no es numero
+          )
+        )
+        pila ;los ultimos dos no son digitos
+      )
+    ) ; cierra el let
+    pila ; si el largo es 1 o menos o no es un simbolo
+  )
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un operador relacional de Clojure y un vector. Si el vector tiene mas de un elemento y si los dos
 ; ultimos elementos son numericos, devuelve el vector con los dos ultimos elementos reemplazados por el resultado de
