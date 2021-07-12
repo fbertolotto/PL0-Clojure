@@ -826,13 +826,13 @@
         (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
           (if (number? resultado)
             (vec (concat (drop-last 2 pila) [(int resultado)]))
-            pila ;no es numero
+            pila ; no es numero
           )
         )
-        pila ;los ultimos dos no son digitos
+        pila ; los ultimos dos no son digitos
       )
     ) ; cierra el let
-    pila ; si el largo es 1 o menos o no es un simbolo
+    pila ; si el largo es 1 o menos o es un simbolo
   )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -855,7 +855,27 @@
 ; user=> (aplicar-relacional <= '[a b c])
 ; [a b c]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn aplicar-relacional [op pila])
+(defn aplicar-relacional [op pila]
+  (if (and ( > (count pila) 1) (not (symbol? op)))
+    (let [ultimo (last pila) anteultimo (last (butlast pila))]
+      (if (and 
+          (integer? ultimo) (integer? anteultimo)
+          )
+        (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
+          (if (not (string? resultado))
+            (if resultado
+              (vec (concat (drop-last 2 pila) [1]))
+              (vec (concat (drop-last 2 pila) [0]))
+            )
+            pila ; ocurrio un error
+          )
+        ) ; cierra el let
+        pila ; los ultimos dos no son digitos
+      )
+    )
+    pila ; si el largo es 1 o menos o es un simbolo
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un vector con instrucciones de la RI y las imprime numeradas a partir de 0. Siempre retorna nil.
