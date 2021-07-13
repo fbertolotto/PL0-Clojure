@@ -645,7 +645,23 @@
 ; user=> (a-mayusculas-salvo-strings "  writeln ('Se ingresa un valor, se muestra su doble.');")
 ; "  WRITELN ('Se ingresa un valor, se muestra su doble.');"
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn a-mayusculas-salvo-strings [s])
+(defn capitalize? [string substring]
+  (if (re-find #"'.*'" string)
+    (if ( = (compare (second (clojure.string/split (re-find #"'.*'" string) #"'")) substring) 0) ; si existe subcadena se compara con la recibida
+      ; (re-find #"'.*'" string) devuelve la subcadena con los ' '
+      ; (clojure.string/split anterior #"'") devuelve la cadena anterior sin los ' '
+      ; (second anterior) se utiliza second porque devuelve una secuencia con dos elementos y el primero es vacio
+      ; finalmente se compara con la subcadena para ver si la diferncia es 0
+      (re-find #"'.*'" string) ; si coinciden no se capitaliza y se devuelve con los ' ' (devolver substring no los incluye)
+      (clojure.string/upper-case substring) ; si no coincide se devuelve capitalizada la substring
+    )
+    (clojure.string/upper-case substring) ; si no existe subcadena, se capitaliza
+  )
+)
+
+(defn a-mayusculas-salvo-strings [s]
+  (clojure.string/join (map (partial capitalize? s) (clojure.string/split s #"'")))
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un dato y devuelve true si es una palabra reservada de PL/0; si no, devuelve false. Por ejemplo:
