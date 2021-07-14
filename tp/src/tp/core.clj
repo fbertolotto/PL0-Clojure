@@ -589,30 +589,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; LA SIGUIENTE FUNCION DEBERA SER COMPLETADA PARA QUE ANDE EL INTERPRETE DE PL/0 
 ; FALTAN IMPLEMENTAR (todas como llamados recursivos a la funcion interpretar, con recur y argumentos actualizados):
-;
-; POP: Saca un valor de la pila de datos, lo coloca en una direccion de memoria que forma parte de la instruccion (direccionamiento directo) e incrementa el contador de programa
-; PFM: Coloca en la pila de datos un valor proveniente de una direccion de memoria que forma parte de la instruccion (PUSH FROM MEMORY: direccionamiento directo) e incrementa el contador de programa 
-; PFI: Coloca en la pila de datos un valor que forma parte de la instruccion (PUSH FROM INSTRUCTION: direccionamiento inmediato) e incrementa el contador de programa 
-;
-; ADD: Reemplaza los dos valores ubicados en el tope de la pila de datos por su suma e incrementa el contador de programa  
-; SUB: Reemplaza los dos valores ubicados en el tope de la pila de datos por su resta e incrementa el contador de programa  
-; MUL: Reemplaza los dos valores ubicados en el tope de la pila de datos por su producto e incrementa el contador de programa  
-; DIV: Reemplaza los dos valores ubicados en el tope de la pila de datos por su cociente entero e incrementa el contador de programa  
-;
-; EQ : Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si son iguales (si no, por 0) e incrementa el contador de programa
-; NEQ: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si son distintos (si no, por 0) e incrementa el contador de programa
-; GT : Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es mayor que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
-; GTE: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es mayor o igual que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
-; LT : Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es menor que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
-; LTE: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es menor o igual que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
-;
-; NEG: Le cambia el signo al valor ubicado en el tope de la pila de datos e incrementa el contador de programa
-; ODD: Reemplaza el valor ubicado en el tope de la pila de datos por 1 si este es impar (si no, por 0) e incrementa el contador de programa
-;
-; JMP: Reemplaza el contador de programa por la direccion que forma parte de la instruccion
-; JC : Saca un valor de la pila de datos y si es 0 incrementa el contador de programa (si no, reemplaza el contador de programa por la direccion que forma parte de la instruccion)
-; CAL: Coloca en la pila de llamadas el valor del contador de programa incrementado en 1 y reemplaza el contador de programa por la direccion que forma parte de la instruccion
-; RET: Saca una direccion de la pila de llamadas y la coloca en el contador de programa
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn interpretar [cod mem cont-prg pila-dat pila-llam]
@@ -629,8 +605,125 @@
                 (recur cod mem (inc cont-prg) (vec (butlast pila-dat)) pila-llam))
             (do (print (apply str (butlast (rest (str (second fetched)))))) (flush)
                 (recur cod mem (inc cont-prg) pila-dat pila-llam)))
-      NL (do (prn) (recur cod mem (inc cont-prg) pila-dat pila-llam))))
+      NL (do (prn) (recur cod mem (inc cont-prg) pila-dat pila-llam))
 
+      ; POP: Saca un valor de la pila de datos, lo coloca en una direccion de memoria que forma parte de la instruccion 
+      ; (direccionamiento directo) e incrementa el contador de programa
+      POP (recur cod (assoc mem (second fetched) (last pila-dat)) (inc cont_prg) (vec (butlast pila-dat)) pila-llam)
+
+      ; PFM: Coloca en la pila de datos un valor proveniente de una direccion de memoria que forma parte de la instruccion 
+      ; (PUSH FROM MEMORY: direccionamiento directo) e incrementa el contador de programa 
+      PFM (let [valor (get mem (second fetched))]
+            (recur cod mem (inc cont_prg) (conj pila-dat valor) pila-llam)
+          )
+
+      ; PFI: Coloca en la pila de datos un valor que forma parte de la instruccion (PUSH FROM INSTRUCTION: direccionamiento inmediato)
+      ; e incrementa el contador de programa 
+      PFI (recur cod mem (inc cont_prg) (conj pila-dat (second fetched) ) pila-llam)
+
+      ; ADD: Reemplaza los dos valores ubicados en el tope de la pila de datos por su suma e incrementa el contador de programa 
+      ADD (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) (+ ultimo anteultimo)) pila-llam)
+          )
+          
+      ; SUB: Reemplaza los dos valores ubicados en el tope de la pila de datos por su resta e incrementa el contador de programa  
+      SUB (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) (- ultimo anteultimo)) pila-llam)
+          )
+
+      ; MUL: Reemplaza los dos valores ubicados en el tope de la pila de datos por su producto e incrementa el contador de programa  
+      MUL (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) (* ultimo anteultimo)) pila-llam)
+          )     
+
+      ; DIV: Reemplaza los dos valores ubicados en el tope de la pila de datos por su cociente entero e incrementa el contador de programa }
+      DIV (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) (/ ultimo anteultimo)) pila-llam)
+          )
+
+      ; EQ : Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si son iguales (si no, por 0) e incrementa el contador de programa
+      EQ (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (= ultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          )
+      
+      ; NEQ: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si son distintos (si no, por 0) e incrementa el contador de programa
+      NEQ (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (= ultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          )
+
+      ; GT : Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es mayor que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
+      GT (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (> anteultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          )
+      ; GTE: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es mayor o igual que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
+      GTE (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (>= anteultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          )
+
+      ; LT :Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es menor que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
+      LT (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (< anteultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          )
+
+      ; LTE: Reemplaza los dos valores ubicados en el tope de la pila de datos por 1 si el valor ubicado debajo del tope es menor o igual que el ubicado en el tope (si no, por 0) e incrementa el contador de programa
+      LTE (let [ultimo (last pila-dat) anteultimo (last (butlast pila-dat))]
+            (if (<= anteultimo anteultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast (butlast pila-dat)) 0) pila-llam)
+            )
+          ) 
+
+      ; NEG: Le cambia el signo al valor ubicado en el tope de la pila de datos e incrementa el contador de programa
+      NEG (let [ultimo (last pila-dat)]
+            (recur cod mem (inc cont_prg) (conj (butlast pila-dat) (* -1 ultimo)) pila-llam)
+          ) 
+      ; ODD: Reemplaza el valor ubicado en el tope de la pila de datos por 1 si este es impar (si no, por 0) e incrementa el contador de programa
+      ODD (let [ultimo (last pila-dat)]
+            (if (odd? ultimo)
+              (recur cod mem (inc cont_prg) (conj (butlast pila-dat) 1) pila-llam)
+              (recur cod mem (inc cont_prg) (conj (butlast pila-dat) 0) pila-llam)
+            )
+          )
+
+      ; JMP: Reemplaza el contador de programa por la direccion que forma parte de la instruccion
+      JMP (recur cod mem (second fetched) pila-dat pila-llam)
+
+      ; JC : Saca un valor de la pila de datos y si es 0 incrementa el contador de programa (si no, reemplaza el 
+      ; contador de programa por la direccion que forma parte de la instruccion)
+      JC (let [ultimo (last pila-dat)]
+            (if (zero? ultimo)
+              (recur cod mem (inc cont_prg) (butlast pila-dat) pila-llam)
+              (recur cod mem (second fetched) (butlast pila-dat) pila-llam)
+            )
+          )
+      
+      ; CAL: Coloca en la pila de llamadas el valor del contador de programa incrementado en 1 y reemplaza el contador
+      ; de programa por la direccion que forma parte de la instruccion
+      CAL (let [nuevo-contador (second fetched)]
+            (recur cod mem nuevo-contador pila-dat (conj pila-llam (inc cont_prg)))
+      )
+      
+      ; RET: Saca una direccion de la pila de llamadas y la coloca en el contador de programa
+      CAL (let [nuevo-contador (last pila-llam)]
+            (recur cod mem nuevo-contador pila-dat (butlast pila-llam))
+          )
+    )
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
