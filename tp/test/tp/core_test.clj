@@ -282,6 +282,27 @@
   )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deftest test-identificador?
+  (testing "Identificador"
+    (is (= (identificador? 2)
+           false
+        )
+    )
+    (is (= (identificador? 'V2)
+           true
+        )
+    )    
+    (is (= (identificador? "V2")
+           true
+        )
+    )
+    (is (= (identificador? 'CALL)
+           false
+        )
+    )
+  )
+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (deftest test-cadena?
   (testing "Cadena"
     (is (= (cadena? "'Hola'")
