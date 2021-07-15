@@ -1002,8 +1002,21 @@
 ; [nil () [VAR X] :error [[0] []] 0 [[JMP ?]]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn generar
-  ([amb instr])
-  ([amb instr val]))
+  ([amb instr]
+    (if (= (estado amb) :sin-errores)
+      (assoc amb 6 (conj (bytecode amb) instr))
+      amb
+    )
+  )
+  ([amb instr val]
+    (if (= (estado amb) :sin-errores)
+      (let [vector (vec [instr val])]
+        (assoc amb 6 (conj (bytecode amb) vector))
+      )
+      amb
+    )
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y devuelve una lista con las ternas [identificador, tipo, valor] provenientes del segundo
