@@ -1040,16 +1040,42 @@
 ; valido, devuelve el ambiente intacto. De lo contrario, devuelve el ambiente con la instruccion de la RI
 ; correspondiente al operador relacional agregada en el vector de bytecode. Por ejemplo: 
 ; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :error [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '=)
-; [WRITELN (END .) [] :error [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET]]
-; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '+)
-; [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET]]
-; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '=)
-; [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET EQ]]
-; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '>=)
-; [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET GTE]]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn generar-operador-relacional [amb operador])
+;                                     [WRITELN (END .) [] :error [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET]]
 
+; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '+)
+;                                     [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET]]
+
+; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '=)
+;                                     [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET EQ]]
+
+; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '>=)
+;                                     [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET GTE]]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn buscar-operador-relacional [op]
+  (cond
+    (= '= op) 'EQ
+    (= '> op) 'GT
+    (= '>= op) 'GTE
+    (= '< op) 'LT
+    (= '<= op) 'LTE
+    :else
+      nil
+  )
+)
+(defn generar-operador-relacional [amb operador]
+  (if (and 
+        (= (estado amb) :sin-errores)
+        (buscar-operador-relacional operador)
+      )
+      (let [bytecode (bytecode amb) operacion (buscar-operador-relacional operador)]
+        (if (some #{operacion} bytecode) 
+          amb
+          (assoc amb 6 (conj bytecode operacion))
+        )
+      )
+      amb
+  )   
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y un operador monadico de signo de PL/0. Si el estado no es :sin-errores o si el operador no es
 ; valido, devuelve el ambiente intacto. De lo contrario, devuelve el ambiente con la instruccion de la RI
@@ -1070,7 +1096,7 @@
 ;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn buscar-operacion [op]
+(defn buscar-operador-monadico [op]
   (cond
     (= '+ op) 'ADD
     (= '- op) 'NEG
@@ -1082,9 +1108,9 @@
 (defn generar-signo [amb signo]
   (if (and 
         (= (estado amb) :sin-errores)
-        (buscar-operacion signo)
+        (buscar-operador-monadico signo)
       )
-      (let [bytecode (bytecode amb) operacion (buscar-operacion signo)]
+      (let [bytecode (bytecode amb) operacion (buscar-operador-monadico signo)]
         (if (some #{operacion} bytecode) 
           amb
           (assoc amb 6 (conj bytecode operacion))
