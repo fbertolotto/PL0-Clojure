@@ -1007,7 +1007,15 @@
 ; user=> (buscar-coincidencias '[nil () [CALL X] :sin-errores [[0 3] [[X VAR 0] [Y VAR 1] [A PROCEDURE 1] [X VAR 2] [Y VAR 3] [B PROCEDURE 2]]] 6 [[JMP ?] [JMP 4] [CAL 1] RET]])
 ; ([X VAR 0] [X VAR 2])
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn buscar-coincidencias [amb])
+(defn es-simbolo? [simbolo terna]
+  (if (= (nth terna 0) simbolo) true false)
+)
+
+(defn buscar-coincidencias [amb]
+  (let [simbolo (last (simb-ya-parseados amb)) scope (nth (contexto amb) 1)]
+    (filter (partial es-simbolo? simbolo) scope)
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y la ubicacion de un JMP a corregir en el vector de bytecode. Si el estado no es :sin-errores,
@@ -1042,16 +1050,64 @@
 ; valido, devuelve el ambiente intacto. De lo contrario, devuelve el ambiente con la instruccion de la RI
 ; correspondiente al operador monadico de signo agregada en el vector de bytecode. Por ejemplo:
 ; user=> (generar-signo [nil () [] :error '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
-; [nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+;                       [nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+
 ; user=> (generar-signo [nil () [] :error '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '+)
-; [nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+;                       [nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+
 ; user=> (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '+)
-; [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+
 ; user=> (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '*)
-; [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+
 ; user=> (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
-; [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
+;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn generar-signo [amb signo])
+
+(defn buscar-operacion [op]
+  (cond
+    (= '+ op) 'ADD
+    (= '- op) 'NEG
+    (= '* op) 'MUL
+    :else
+      nil
+  )
+)
+(defn generar-signo [amb signo]
+  (if (and 
+        (= (estado amb) :sin-errores)
+        (buscar-operacion signo)
+      )
+      (let [bytecode (bytecode amb) operacion (buscar-operacion signo)]
+        (if (some #{operacion} bytecode) 
+          amb
+          (assoc amb 6 (conj bytecode operacion))
+        )
+      )
+      amb
+  )   
+)
 
 true
+
+; (defn simb-actual [amb]
+;   (amb 0))
+; 
+; (defn simb-no-parseados-aun [amb]
+;   (amb 1))
+; 
+; (defn simb-ya-parseados [amb]
+;   (amb 2))
+; 
+; (defn estado [amb]
+;   (amb 3))
+; 
+; (defn contexto [amb]
+;   (amb 4))
+; 
+; (defn prox-var [amb]
+;   (amb 5))
+; 
+; (defn bytecode [amb]
+;   (amb 6))

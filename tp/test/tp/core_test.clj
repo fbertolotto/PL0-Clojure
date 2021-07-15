@@ -402,3 +402,40 @@
   )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deftest test-buscar-coincidencias
+  (testing "Buscar coincidencias"
+    (is (= (buscar-coincidencias '[nil () [CALL X] :sin-errores [[0 3] [[X VAR 0] [Y VAR 1] [A PROCEDURE 1] [X VAR 2] [Y VAR 3] [B PROCEDURE 2]]] 6 [[JMP ?] [JMP 4] [CAL 1] RET]])
+          '([X VAR 0] [X VAR 2])
+        )
+    )
+    (is (= (buscar-coincidencias '[nil () [CALL Y] :sin-errores [[0 3] [[X VAR 0] [X VAR 1] [A PROCEDURE 1] [X VAR 2] [X VAR 3] [B PROCEDURE 2]]] 6 [[JMP ?] [JMP 4] [CAL 1] RET]])
+          '()
+        )
+    )
+  )
+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deftest test-generar-signos
+  (testing "Generar signos"
+    (is (= (generar-signo [nil () [] :error '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
+          '[nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+        )
+    )
+    (is (= (generar-signo [nil () [] :error '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '+)
+          '[nil () [] :error [[0] [[X VAR 0]]] 1 [MUL ADD]]
+        )
+    )
+    (is (= (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '+)
+          '[nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+        )
+    )
+    (is (= (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '*)
+          '[nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
+        )
+    )    
+    (is (= (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
+          '[nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
+        )
+    )
+  )
+)
