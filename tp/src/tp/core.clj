@@ -789,8 +789,16 @@
 ; user=> (ya-declarado-localmente? 'Y '[[0 3 5] [[X VAR 0] [Y VAR 1] [INICIAR PROCEDURE 1] [Y CONST 2] [ASIGNAR PROCEDURE 2] [Y CONST 6]]])
 ; true
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn ya-declarado-localmente? [ident context])
+(defn es-identificador? [ident terna]
+  (if (= ident (str (nth terna 0))) true false)
+)
 
+(defn ya-declarado-localmente? [ident context]
+  (let [scope-local (last (nth context 0))]
+    (if (>= scope-local (count (nth context 1))) false)
+    (if (some true? (map (partial es-identificador? (str ident)) (drop scope-local (nth context 1)))) true false)
+  )
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, lo devuelve modificado
 ; con la variable declarada como terna [identificador, tipo, valor] en el segundo subvector del vector contexto y el
