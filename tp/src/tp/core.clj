@@ -2,15 +2,11 @@
 
   (:gen-class))
 
-(defn -main
-
-  "I don't do a whole lot ... yet."
-
-  [& args]
-
-  (println "Hello, World!"))
 
 (declare driver-loop)
+(defn -main []
+  (driver-loop)
+)
 (declare escanear-arch)
 (declare a-mayusculas-salvo-strings)
 (declare listar)
@@ -886,8 +882,11 @@
   (if (= op simbolo) i nil)
 )
 
-(defn indice-de-simbolo [simb-no-parseados simbolo]
-  (first (filter (complement nil?) (map-indexed (partial es-el-simbolo? simbolo) simb-no-parseados)))
+(defn indice-de-simbolo [simb-no-parseados simbolo primero?]
+  (if primero?
+    (first (filter (complement nil?) (map-indexed (partial es-el-simbolo? simbolo) simb-no-parseados)))
+    (last (filter (complement nil?) (map-indexed (partial es-el-simbolo? simbolo) simb-no-parseados)))
+  )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, verifica si se debe
@@ -903,7 +902,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn declaracion-var [amb]
   (if (and (= (estado amb) :sin-errores) (= (simb-actual amb) 'VAR))
-        (let [indice-prox-instruccion (+ 1 (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";"))) ;el siguiente al ";"
+        (let [indice-prox-instruccion (+ 1 (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";") true)) ;el siguiente al ";"
               nueva-instruccion (first (drop indice-prox-instruccion (simb-no-parseados-aun amb))) ;elimino los datos previos y dejo primera la nueva instr
               nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ 1 indice-prox-instruccion)); sumo 1 para omitir la instruccion
               nuevos-simb-parseados (into '[VAR] (vec (take indice-prox-instruccion (simb-no-parseados-aun amb)))) ;tomo hasta la prox-instr (sin incluir)
@@ -946,7 +945,7 @@
 
 (defn procesar-signo-unario [amb]
   (if (and (= (estado amb) :sin-errores)  (es-unario? (simb-actual amb)))
-        (let [indice-prox-separador (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";"))
+        (let [indice-prox-separador (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";") true)
               nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) indice-prox-separador)
               nuevos-simb-parseados (conj (simb-ya-parseados amb) (simb-actual amb))
               ]
@@ -985,7 +984,19 @@
 ;                   [- (( X * 2 + 1 ) END .) [VAR X ; BEGIN X :=] :sin-errores [[0] [[X VAR 0]]] 1 []]
 ;                   [END (.) [VAR X ; BEGIN X := - ( X * 2 + 1 )] :sin-errores [[0] [[X VAR 0]]] 1 [[PFM 0] [PFI 2] MUL [PFI 1] ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn expresion [amb])
+(defn expresion [amb]
+  (if (and (= (estado amb) :sin-errores))
+        (let [indice-prox-separador (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ")") false)
+              prox-instr (first (drop (+ 1 indice-prox-separador) (simb-no-parseados-aun amb)))
+              simbolos (drop 1 (take indice-prox-separador (simb-no-parseados-aun amb))) ; saco el primer ";"
+              nuevos-simb-parseados (conj (simb-ya-parseados amb) (simb-actual amb) simbolos)
+              nuevos-simb-sin-parsear (drop 1 (drop (+ 1 indice-prox-separador) (simb-no-parseados-aun amb)))
+              ]
+              (factor [prox-instr nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)])
+        )
+        amb
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un operador aritmetico diadico de Clojure y un vector. Si el vector tiene mas de un elemento y si los dos
@@ -1101,13 +1112,16 @@
 ; y si el estado es :sin-errores, devuelve el ambiente con un vector conteniendo la instruccion y el valor, agregado
 ; al final del vector de bytecode. De lo contrario, devuelve el ambiente intacto. Por ejemplo:
 ; user=> (generar '[nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?]]] 'HLT)
-; [nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?] HLT]]
+;                  [nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?] HLT]]
+
 ; user=> (generar '[nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?]]] 'PFM 0)
-; [nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?] [PFM 0]]]
+;                  [nil () [VAR X] :sin-errores [[0] []] 0 [[JMP ?] [PFM 0]]]
+
 ; user=> (generar '[nil () [VAR X] :error [[0] []] 0 [[JMP ?]]] 'HLT)
-; [nil () [VAR X] :error [[0] []] 0 [[JMP ?]]]
+;                  [nil () [VAR X] :error [[0] []] 0 [[JMP ?]]]
+
 ; user=> (generar '[nil () [VAR X] :error [[0] []] 0 [[JMP ?]]] 'PFM 0)
-; [nil () [VAR X] :error [[0] []] 0 [[JMP ?]]]
+;                 [nil () [VAR X] :error [[0] []] 0 [[JMP ?]]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn generar
   ([amb instr]
