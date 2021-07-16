@@ -901,7 +901,7 @@
 )
 
 (defn declaracion-var [amb]
-  (if (= (estado amb) :sin-errores)
+  (if (and (= (estado amb) :sin-errores) (= (simb-actual amb) 'VAR))
         (let [indice-begin (indice-de-begin (simb-no-parseados-aun amb))
               nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ indice-begin 1))
               nuevos-simb-parseados (into '[VAR] (vec (take indice-begin (simb-no-parseados-aun amb)))) ;tomo hasta el "; BEGIN" sin incluir
