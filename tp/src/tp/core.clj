@@ -898,22 +898,22 @@
 ;                         [VAR (X , Y ; BEGIN X := 7 ; Y := 12 ; END .) [] :error [[0] []] 0 [[JMP ?]]]
 
 ; user=> (declaracion-var ['VAR (list 'X (symbol ",") 'Y (symbol ";") 'BEGIN 'X (symbol ":=") 7 (symbol ";") 'Y (symbol ":=") 12 (symbol ";") 'END (symbol ".")) [] :sin-errores [[0] []] 0 '[[JMP ?]]])
+;                         [VAR (X , Y ; BEGIN X := 7 ; Y := 12 ; END .) [] :sin-errores [[0] []] 0 [[JMP ?]]]
 ;                         [BEGIN (X := 7 ; Y := 12 ; END .) [VAR X , Y ;] :sin-errores [[0] [[X VAR 0] [Y VAR 1]]] 2 [[JMP ?]]]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn declaracion-var [amb]
   (if (and (= (estado amb) :sin-errores) (= (simb-actual amb) 'VAR))
-        (let [indice-begin (indice-de-simbolo (simb-no-parseados-aun amb) 'BEGIN)
-              nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ indice-begin 1))
-              nuevos-simb-parseados (into '[VAR] (vec (take indice-begin (simb-no-parseados-aun amb)))) ;tomo hasta el "; BEGIN" sin incluir
-              nuevo-amb ['BEGIN nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)]
+        (let [indice-prox-instruccion (+ 1 (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";"))) ;el siguiente al ";"
+              nueva-instruccion (first (drop indice-prox-instruccion (simb-no-parseados-aun amb))) ;elimino los datos previos y dejo primera la nueva instr
+              nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ 1 indice-prox-instruccion)); sumo 1 para omitir la instruccion
+              nuevos-simb-parseados (into '[VAR] (vec (take indice-prox-instruccion (simb-no-parseados-aun amb)))) ;tomo hasta la prox-instr (sin incluir)
+              nuevo-amb [nueva-instruccion nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)]
               ]
             (cargar-var-en-tabla nuevo-amb)
         )
         amb
   )
 )
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, verifica si se debe
 ; parsear un signo unario (+ o -). Si no es asi, se devuelve el ambiente intacto. De lo contrario, se devuelve un
