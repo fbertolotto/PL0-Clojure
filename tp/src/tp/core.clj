@@ -819,42 +819,47 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; CARGA TODAS LAS VARIABLES INEXISTENTES
-;(defn generar-terna [identificador valor]
-;    [identificador 'VAR valor]
-;)
-;(defn ya-declarado? [contexto identificador]
-;  (not (ya-declarado-localmente? identificador contexto))
-;)
+(defn generar-terna [identificador valor]
+    [identificador 'VAR valor]
+)
+(defn es-valido? [contexto identificador]
+  (if ( and
+        (not (ya-declarado-localmente? identificador contexto)) 
+        (not= identificador (symbol ","))
+        (not= identificador (symbol ";"))
+      ) true false
+  )
+)
+(defn cargar-var-en-tabla [amb]
+  (if (= (estado amb) :sin-errores)
+      (let [ident (filter (partial es-valido? (contexto amb)) (drop 1 (simb-ya-parseados amb)))
+            valores (range (prox-var amb) (+ (prox-var amb) (count ident)))
+            primer-subvector (nth (contexto amb) 0)
+            segundo-subvector (nth (contexto amb) 1)
+            ternas (vec (map generar-terna ident valores))
+            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector ternas)])
+           ]
+        (assoc ambiente-sin-contador 5 (+ (prox-var amb) (count ident)))
+      )
+      amb
+  )
+)
+
+; PARA CARGAR UNICAMENTE UNA VARIABLE
 ;(defn cargar-var-en-tabla [amb]
 ;  (if (= (estado amb) :sin-errores)
-;      (let [ident (filter (partial ya-declarado? (contexto amb)) (drop 1 (simb-ya-parseados amb)))
-;            valores (range (prox-var amb) (+ (prox-var amb) (count ident)))
+;      (let [ident (last (simb-ya-parseados amb))
+;            valor (prox-var amb)
 ;            primer-subvector (nth (contexto amb) 0)
 ;            segundo-subvector (nth (contexto amb) 1)
-;            ternas (vec (map generar-terna ident valores))
-;            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector ternas)])
+;            terna [[ident 'VAR valor]]
+;            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector terna)])
 ;           ]
 ;        (assoc ambiente-sin-contador 5 (+ (prox-var amb) 1))
 ;      )
 ;      amb
 ;  )
 ;)
-
-; PARA CARGAR UNICAMENTE UNA VARIABLE
-(defn cargar-var-en-tabla [amb]
-  (if (= (estado amb) :sin-errores)
-      (let [ident (last (simb-ya-parseados amb))
-            valor (prox-var amb)
-            primer-subvector (nth (contexto amb) 0)
-            segundo-subvector (nth (contexto amb) 1)
-            terna [[ident 'VAR valor]]
-            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector terna)])
-           ]
-        (assoc ambiente-sin-contador 5 (+ (prox-var amb) 1))
-      )
-      amb
-  )
-)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, lo devuelve modificado
 ; con el tamano del segundo subvector del vector contexto agregado al final del primer subvector del vector contexto.
@@ -887,7 +892,26 @@
 ; user=> (declaracion-var ['VAR (list 'X (symbol ",") 'Y (symbol ";") 'BEGIN 'X (symbol ":=") 7 (symbol ";") 'Y (symbol ":=") 12 (symbol ";") 'END (symbol ".")) [] :sin-errores [[0] []] 0 '[[JMP ?]]])
 ; [BEGIN (X := 7 ; Y := 12 ; END .) [VAR X , Y ;] :sin-errores [[0] [[X VAR 0] [Y VAR 1]]] 2 [[JMP ?]]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn declaracion-var [amb])
+(defn es-begin? [i op]
+  (if (= op 'BEGIN) i nil)
+)
+
+(defn indice-de-begin [simb-no-parseados]
+  (first (filter (complement nil?) (map-indexed es-begin? simb-no-parseados)))
+)
+
+(defn declaracion-var [amb]
+  (if (= (estado amb) :sin-errores)
+        (let [indice-begin (indice-de-begin (simb-no-parseados-aun amb))
+              nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ indice-begin 1))
+              nuevos-simb-parseados (into '[VAR] (vec (take indice-begin (simb-no-parseados-aun amb)))) ;tomo hasta el "; BEGIN" sin incluir
+              nuevo-amb ['BEGIN nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)]
+              ]
+            (cargar-var-en-tabla nuevo-amb)
+        )
+        amb
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, verifica si se debe
