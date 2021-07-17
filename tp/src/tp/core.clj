@@ -699,16 +699,19 @@
 ; user=> (a-mayusculas-salvo-strings "  writeln ('Se ingresa un valor, se muestra su doble.');")
 ; "  WRITELN ('Se ingresa un valor, se muestra su doble.');"
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn capitalize? [string substring]
-  (if (= string substring)
+(defn capitalize? [strings substring]
+  (if (some #{substring} strings)
     (str (symbol "'") substring (symbol "'"))
     (clojure.string/upper-case substring)
   )
 )
+(defn encontrar-strings [s]
+  (take-nth 2 (rest (clojure.string/split (re-find #"'.*'" s)  #"'")))
+)
 (defn a-mayusculas-salvo-strings [s]
   (if (re-find #"'.*'" s)
-    (let [string (second (clojure.string/split (re-find #"'.*'" s)  #"'"))] ;el second es split porque devuelve ["" "string"]
-      (clojure.string/join (map (partial capitalize? string) (clojure.string/split s #"'")))
+    (let [strings (encontrar-strings s)]
+      (clojure.string/join (map (partial capitalize? strings) (clojure.string/split s #"'")))
     )
     (clojure.string/upper-case s)
   )
