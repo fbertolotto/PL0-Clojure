@@ -705,6 +705,8 @@
     (clojure.string/upper-case substring)
   )
 )
+; Se consiguen las cadenas y se eliminan las impares.
+; esto es porque en las pos impares quedaron las cadenas intermedias.
 (defn encontrar-strings [s]
   (take-nth 2 (rest (clojure.string/split (re-find #"'.*'" s)  #"'")))
 )
