@@ -814,49 +814,24 @@
 ; user=> (cargar-var-en-tabla '[nil () [VAR X , Y] :sin-errores [[0] [[X VAR 0]]] 1 [[JMP ?]]])
 ;                              [nil () [VAR X Y] :sin-errores [[0] [[X VAR 0] [Y VAR 1]]] 2 [[JMP ?]]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; CARGA TODAS LAS VARIABLES INEXISTENTES
-(defn generar-terna [identificador valor]
-    [identificador 'VAR valor]
-)
-(defn es-valido? [contexto identificador]
-  (if ( and
-        (not (ya-declarado-localmente? identificador contexto)) 
-        (not= identificador (symbol ","))
-        (not= identificador (symbol ";"))
-      ) true false
-  )
-)
 (defn cargar-var-en-tabla [amb]
   (if (= (estado amb) :sin-errores)
-      (let [ident (filter (partial es-valido? (contexto amb)) (drop 1 (simb-ya-parseados amb)))
-            valores (range (prox-var amb) (+ (prox-var amb) (count ident)))
+      (let [variable (last (simb-ya-parseados amb))
+            valor (prox-var amb)
             primer-subvector (nth (contexto amb) 0)
             segundo-subvector (nth (contexto amb) 1)
-            ternas (vec (map generar-terna ident valores))
-            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector ternas)])
+            terna [[variable 'VAR valor]]
+            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector terna)])
            ]
-        (assoc ambiente-sin-contador 5 (+ (prox-var amb) (count ident)))
+        (if (identificador? variable) ;solo cargo identificadores validos
+            (assoc ambiente-sin-contador 5 (+ (prox-var amb) 1))
+            amb
+        )
       )
       amb
   )
 )
 
-; PARA CARGAR UNICAMENTE UNA VARIABLE
-;(defn cargar-var-en-tabla [amb]
-;  (if (= (estado amb) :sin-errores)
-;      (let [ident (last (simb-ya-parseados amb))
-;            valor (prox-var amb)
-;            primer-subvector (nth (contexto amb) 0)
-;            segundo-subvector (nth (contexto amb) 1)
-;            terna [[ident 'VAR valor]]
-;            ambiente-sin-contador (assoc amb 4 [primer-subvector (into segundo-subvector terna)])
-;           ]
-;        (assoc ambiente-sin-contador 5 (+ (prox-var amb) 1))
-;      )
-;      amb
-;  )
-;)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, lo devuelve modificado
 ; con el tamano del segundo subvector del vector contexto agregado al final del primer subvector del vector contexto.
@@ -880,17 +855,6 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn es-el-simbolo? [simbolo i op]
-  (if (= op simbolo) i nil)
-)
-
-(defn indice-de-simbolo [simb-no-parseados simbolo primero?]
-  (if primero?
-    (first (filter (complement nil?) (map-indexed (partial es-el-simbolo? simbolo) simb-no-parseados)))
-    (last (filter (complement nil?) (map-indexed (partial es-el-simbolo? simbolo) simb-no-parseados)))
-  )
-)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, verifica si se debe
 ; parsear una declaracion de variables de PL/0. Si no es asi, se devuelve el ambiente intacto. De lo contrario, se
 ; devuelve un nuevo ambiente con la declaracion de variables parseada (ver EBNF), las variables declaradas en el
@@ -902,17 +866,16 @@
 ;                         [VAR (X , Y ; BEGIN X := 7 ; Y := 12 ; END .) [] :sin-errores [[0] []] 0 [[JMP ?]]]
 ;                         [BEGIN (X := 7 ; Y := 12 ; END .) [VAR X , Y ;] :sin-errores [[0] [[X VAR 0] [Y VAR 1]]] 2 [[JMP ?]]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn declaracion-variables [amb]
+  (if ( = (first amb) (symbol ";"))
+      (escanear amb) ;si es ";" no busco mas variables
+      (declaracion-variables (cargar-var-en-tabla (escanear amb)))
+  )
+)
 (defn declaracion-var [amb]
   (if (and (= (estado amb) :sin-errores) (= (simb-actual amb) 'VAR))
-        (let [indice-prox-instruccion (+ 1 (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";") true)) ;el siguiente al ";"
-              nueva-instruccion (first (drop indice-prox-instruccion (simb-no-parseados-aun amb))) ;elimino los datos previos y dejo primera la nueva instr
-              nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) (+ 1 indice-prox-instruccion)); sumo 1 para omitir la instruccion
-              nuevos-simb-parseados (into '[VAR] (vec (take indice-prox-instruccion (simb-no-parseados-aun amb)))) ;tomo hasta la prox-instr (sin incluir)
-              nuevo-amb [nueva-instruccion nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)]
-              ]
-            (cargar-var-en-tabla nuevo-amb)
-        )
-        amb
+      (declaracion-variables (escanear amb))
+      amb
   )
 )
 
