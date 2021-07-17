@@ -963,8 +963,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn termino [amb]
    (if (= (estado amb) :sin-errores)
-        (let [procesar-primer-factor (factor amb)]
-              (procesar-mas-factores procesar-primer-factor)
+        (let [primer-factor (factor amb)]
+              (procesar-mas-factores primer-factor)
         )
         amb
     ) 
@@ -986,21 +986,13 @@
 ;                   [- (( X * 2 + 1 ) END .) [VAR X ; BEGIN X :=] :sin-errores [[0] [[X VAR 0]]] 1 []]
 ;                   [END (.) [VAR X ; BEGIN X := - ( X * 2 + 1 )] :sin-errores [[0] [[X VAR 0]]] 1 [[PFM 0] [PFI 2] MUL [PFI 1] ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn avanzar-hasta-identificador [amb]
-  (if (identificador? (simb-actual amb))
-      amb
-      (avanzar-hasta-identificador (escanear amb))
-  )
-)
-
 (defn expresion [amb]
   (if (and (= (estado amb) :sin-errores) (not= (simb-actual amb) 'END))
         (let [primer-signo (first amb)
-              procesar-primer-termino (termino (avanzar-hasta-identificador (procesar-signo-unario amb)))
-              segundo-signo (first procesar-primer-termino)
-              procesar-resto (factor (procesar-signo-unario procesar-primer-termino))
+              procesar-termino (termino (procesar-signo-unario amb))
+              mas-terminos (procesar-mas-terminos procesar-termino)
               ]
-              (generar-signo (generar-signo (avanzar-hasta-identificador procesar-resto) segundo-signo) primer-signo)
+              (generar-signo mas-terminos primer-signo)
         )
         amb
   )
