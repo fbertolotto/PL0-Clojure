@@ -735,6 +735,10 @@
     "IF" true
     "WHILE" true
     "ODD" true
+    "WRITELN" true
+    "READLN" true
+    "WRITE" true
+    "END" true
     false
   )
 )
