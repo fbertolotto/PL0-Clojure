@@ -1248,6 +1248,7 @@
     (= '+ op) 'ADD
     (= '- op) 'NEG
     (= '* op) 'MUL
+    (= '/ op) 'DIV
     :else
       nil
   )
