@@ -759,7 +759,7 @@
     (if (re-matches #"^[a-zA-Z][a-zA-Z0-9]*$" (str x)) true false)
   )
 )
-
+ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un dato y devuelve true si es una cadena conteniendo una cadena de PL/0; si no, devuelve false. Por ejemplo:
 ; user=> (cadena? "'Hola'")
@@ -962,12 +962,9 @@
 ;                 [END (.) [VAR X ; BEGIN X := X * 2] :sin-errores [[0] [[X VAR 0]]] 1 [[PFM 0] [PFI 2] MUL]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn termino [amb]
-   (if (= (estado amb) :sin-errores)
-        (let [procesar-primer-factor (factor amb)
-              signo (first procesar-primer-factor)
-              procesar-segudo-factor (factor (escanear procesar-primer-factor))
-              ]
-              (generar-signo procesar-segudo-factor signo)
+   (if (and (= (estado amb) :sin-errores) (not= (simb-actual amb) 'END))
+        (let [procesar-primer-factor (factor amb)]
+              (procesar-mas-factores procesar-primer-factor)
         )
         amb
   ) 
@@ -989,15 +986,21 @@
 ;                   [- (( X * 2 + 1 ) END .) [VAR X ; BEGIN X :=] :sin-errores [[0] [[X VAR 0]]] 1 []]
 ;                   [END (.) [VAR X ; BEGIN X := - ( X * 2 + 1 )] :sin-errores [[0] [[X VAR 0]]] 1 [[PFM 0] [PFI 2] MUL [PFI 1] ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn avanzar-hasta-identificador [amb]
+  (if (identificador? (simb-actual amb))
+      amb
+      (avanzar-hasta-identificador (escanear amb))
+  )
+)
+
 (defn expresion [amb]
-  (if (and (= (estado amb) :sin-errores))
-        (let [indice-prox-separador (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ")") false)
-              prox-instr (first (drop (+ 1 indice-prox-separador) (simb-no-parseados-aun amb)))
-              simbolos (drop 1 (take indice-prox-separador (simb-no-parseados-aun amb))) ; saco el primer ";"
-              nuevos-simb-parseados (conj (simb-ya-parseados amb) (simb-actual amb) simbolos)
-              nuevos-simb-sin-parsear (drop 1 (drop (+ 1 indice-prox-separador) (simb-no-parseados-aun amb)))
+  (if (and (= (estado amb) :sin-errores) (not= (simb-actual amb) 'END))
+        (let [primer-signo (first amb)
+              procesar-primer-termino (termino (avanzar-hasta-identificador (procesar-signo-unario amb)))
+              segundo-signo (first procesar-primer-termino)
+              procesar-resto (factor (procesar-signo-unario procesar-primer-termino))
               ]
-              (factor [prox-instr nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)])
+              (generar-signo (generar-signo (avanzar-hasta-identificador procesar-resto) segundo-signo) primer-signo)
         )
         amb
   )
