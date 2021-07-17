@@ -966,7 +966,17 @@
 ;                 [X (* 2 END .) [VAR X ; BEGIN X :=] :sin-errores [[0] [[X VAR 0]]] 1 []]
 ;                 [END (.) [VAR X ; BEGIN X := X * 2] :sin-errores [[0] [[X VAR 0]]] 1 [[PFM 0] [PFI 2] MUL]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn termino [amb])
+(defn termino [amb]
+   (if (= (estado amb) :sin-errores)
+        (let [procesar-primer-factor (factor amb)
+              signo (first procesar-primer-factor)
+              procesar-segudo-factor (factor (escanear procesar-primer-factor))
+              ]
+              (generar-signo procesar-segudo-factor signo)
+        )
+        amb
+  ) 
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, se devuelve un
