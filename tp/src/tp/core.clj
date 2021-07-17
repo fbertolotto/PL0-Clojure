@@ -790,16 +790,17 @@
 ; user=> (ya-declarado-localmente? 'Y '[[0 3 5] [[X VAR 0] [Y VAR 1] [INICIAR PROCEDURE 1] [Y CONST 2] [ASIGNAR PROCEDURE 2] [Y CONST 6]]])
 ; true
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn es-identificador? [ident terna]
+(defn identificador-en-terna? [ident terna]
   (if (= ident (str (nth terna 0))) true false)
 )
 
 (defn ya-declarado-localmente? [ident context]
   (let [scope-local (last (nth context 0))]
     (if (>= scope-local (count (nth context 1))) false)
-    (if (some true? (map (partial es-identificador? (str ident)) (drop scope-local (nth context 1)))) true false)
+    (if (some true? (map (partial identificador-en-terna? (str ident)) (drop scope-local (nth context 1)))) true false)
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, lo devuelve modificado
 ; con la variable declarada como terna [identificador, tipo, valor] en el segundo subvector del vector contexto y el
@@ -877,6 +878,7 @@
       amb
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn es-el-simbolo? [simbolo i op]
   (if (= op simbolo) i nil)
@@ -913,6 +915,7 @@
         amb
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, verifica si se debe
 ; parsear un signo unario (+ o -). Si no es asi, se devuelve el ambiente intacto. De lo contrario, se devuelve un
@@ -942,13 +945,13 @@
       false
   )
 )
-
 (defn procesar-signo-unario [amb]
-  (if (and (= (estado amb) :sin-errores)  (es-unario? (simb-actual amb)))
+  (if (and (= (estado amb) :sin-errores) (es-unario? (simb-actual amb)))
         (escanear amb)
         amb
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y, si su estado no es :sin-errores, lo devuelve intacto. De lo contrario, se devuelve un
 ; nuevo ambiente con el termino parseado (ver EBNF). Esta funcion no genera ninguna instruccion de la RI por si
@@ -988,11 +991,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn expresion [amb]
   (if (and (= (estado amb) :sin-errores) (not= (simb-actual amb) 'END))
-        (let [primer-signo (first amb)
+        (let [signo (first amb)
               procesar-termino (termino (procesar-signo-unario amb))
               mas-terminos (procesar-mas-terminos procesar-termino)
               ]
-              (generar-signo mas-terminos primer-signo)
+              (generar-signo mas-terminos signo)
         )
         amb
   )
@@ -1023,8 +1026,18 @@
 ; user=> (aplicar-aritmetico + '[a b c])
 ; [a b c]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn operador-aritmetico-diadico? [op]
+  (cond
+    (= + op) true
+    (= - op) true
+    (= * op) true
+    (= / op) true
+    :else
+      false
+  )
+)
 (defn aplicar-aritmetico [op pila]
-  (if (and ( > (count pila) 1) (not (symbol? op)))
+  (if (and ( > (count pila) 1) ( operador-aritmetico-diadico? op))
     (let [ultimo (last pila) anteultimo (last (butlast pila))]
       (if (and 
           (integer? ultimo) (integer? anteultimo)
@@ -1032,15 +1045,16 @@
         (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
           (if (number? resultado)
             (vec (concat (drop-last 2 pila) [(int resultado)]))
-            pila ; no es numero
+            pila ; error en la operacion
           )
         )
         pila ; los ultimos dos no son digitos
       )
-    ) ; cierra el let
-    pila ; si el largo es 1 o menos o es un simbolo
+    )
+    pila ; si el largo es 1 o menor, o no es un op. ar. diadico
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un operador relacional de Clojure y un vector. Si el vector tiene mas de un elemento y si los dos
 ; ultimos elementos son numericos, devuelve el vector con los dos ultimos elementos reemplazados por el resultado de
@@ -1061,8 +1075,20 @@
 ; user=> (aplicar-relacional <= '[a b c])
 ; [a b c]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn operador-relacional? [op]
+  (cond
+    (= = op) true
+    (= > op) true
+    (= >= op) true
+    (= < op) true
+    (= <= op) true
+    (= not= op) true
+    :else
+      false
+  )
+)
 (defn aplicar-relacional [op pila]
-  (if (and ( > (count pila) 1) (not (symbol? op)))
+  (if (and ( > (count pila) 1) (operador-relacional? op))
     (let [ultimo (last pila) anteultimo (last (butlast pila))]
       (if (and 
           (integer? ultimo) (integer? anteultimo)
@@ -1073,13 +1099,13 @@
               (vec (concat (drop-last 2 pila) [1]))
               (vec (concat (drop-last 2 pila) [0]))
             )
-            pila ; ocurrio un error
+            pila ; error en la operacion
           )
-        ) ; cierra el let
+        )
         pila ; los ultimos dos no son digitos
       )
     )
-    pila ; si el largo es 1 o menos o es un simbolo
+    pila ; si el largo es 1 o menor, o no es un op. relacional
   )
 )
 
@@ -1104,7 +1130,6 @@
   (if (nil? cod) (println "0 "nil))
   (some true? (map-indexed println cod))
 )
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Si recibe un ambiente y una instruccion de la RI, y si el estado es :sin-errores, devuelve el ambiente con la
@@ -1198,7 +1223,7 @@
 ; user=> (generar-operador-relacional ['WRITELN (list 'END (symbol ".")) [] :sin-errores [[0 3] []] 6 '[[JMP ?] [JMP ?] [CAL 1] RET]] '>=)
 ;                                     [WRITELN (END .) [] :sin-errores [[0 3] []] 6 [[JMP ?] [JMP ?] [CAL 1] RET GTE]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn buscar-operador-relacional [op]
+(defn operador-relacional [op]
   (cond
     (= '= op) 'EQ
     (= '> op) 'GT
@@ -1212,9 +1237,9 @@
 (defn generar-operador-relacional [amb operador]
   (if (and 
         (= (estado amb) :sin-errores)
-        (buscar-operador-relacional operador)
+        (operador-relacional operador)
       )
-      (let [bytecode (bytecode amb) operacion (buscar-operador-relacional operador)]
+      (let [bytecode (bytecode amb) operacion (operador-relacional operador)]
         (if (some #{operacion} bytecode) 
           amb
           (assoc amb 6 (conj bytecode operacion))
@@ -1223,6 +1248,7 @@
       amb
   )   
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y un operador monadico de signo de PL/0. Si el estado no es :sin-errores o si el operador no es
 ; valido, devuelve el ambiente intacto. De lo contrario, devuelve el ambiente con la instruccion de la RI
@@ -1242,8 +1268,7 @@
 ; user=> (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
 ;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn buscar-operador-monadico [op]
+(defn operador-monadico [op]
   (cond
     (= '+ op) 'ADD
     (= '- op) 'NEG
@@ -1256,9 +1281,9 @@
 (defn generar-signo [amb signo]
   (if (and 
         (= (estado amb) :sin-errores)
-        (buscar-operador-monadico signo)
+        (operador-monadico signo)
       )
-      (let [bytecode (bytecode amb) operacion (buscar-operador-monadico signo)]
+      (let [bytecode (bytecode amb) operacion (operador-monadico signo)]
         (if (some #{operacion} bytecode) 
           amb
           (assoc amb 6 (conj bytecode operacion))
@@ -1269,24 +1294,3 @@
 )
 
 true
-
-; (defn simb-actual [amb]
-;   (amb 0))
-; 
-; (defn simb-no-parseados-aun [amb]
-;   (amb 1))
-; 
-; (defn simb-ya-parseados [amb]
-;   (amb 2))
-; 
-; (defn estado [amb]
-;   (amb 3))
-; 
-; (defn contexto [amb]
-;   (amb 4))
-; 
-; (defn prox-var [amb]
-;   (amb 5))
-; 
-; (defn bytecode [amb]
-;   (amb 6))
