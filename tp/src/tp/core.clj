@@ -945,12 +945,7 @@
 
 (defn procesar-signo-unario [amb]
   (if (and (= (estado amb) :sin-errores)  (es-unario? (simb-actual amb)))
-        (let [indice-prox-separador (indice-de-simbolo (simb-no-parseados-aun amb) (symbol ";") true)
-              nuevos-simb-sin-parsear (nthrest (simb-no-parseados-aun amb) indice-prox-separador)
-              nuevos-simb-parseados (conj (simb-ya-parseados amb) (simb-actual amb))
-              ]
-            [(first (simb-no-parseados-aun amb)) nuevos-simb-sin-parsear nuevos-simb-parseados (estado amb) (contexto amb) (prox-var amb) (bytecode amb)]
-        )
+        (escanear amb)
         amb
   )
 )
