@@ -70,10 +70,10 @@
 (declare aplicar-relacional)
 (declare dump)
 
-; (defn spy
-;   ([x] (do (prn x) x))
-;   ([msg x] (do (print msg) (print ": ") (prn x) x))
-; )
+(defn spy
+  ([x] (do (prn x) x))
+  ([msg x] (do (print msg) (print ": ") (prn x) x))
+)
 
 (defn driver-loop
   ([]
@@ -668,8 +668,8 @@
       ; contador de programa por la direccion que forma parte de la instruccion)
       JC (let [ultimo (last pila-dat)]
             (if (zero? ultimo)
-              (recur cod mem (inc cont-prg) (butlast pila-dat) pila-llam)
-              (recur cod mem (second fetched) (butlast pila-dat) pila-llam)
+              (recur cod mem (inc cont-prg) (vec (butlast pila-dat)) pila-llam)
+              (recur cod mem (second fetched) (vec (butlast pila-dat)) pila-llam)
             )
           )
       
@@ -1008,7 +1008,7 @@
           )
         (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
           (if (number? resultado)
-            (vec (concat (drop-last 2 pila) [(int resultado)]))
+            (conj (vec (drop-last 2 pila)) (int resultado))
             pila ; error en la operacion
           )
         )
@@ -1060,8 +1060,8 @@
         (let [resultado (try (op anteultimo ultimo) (catch Exception e ""))]
           (if (not (string? resultado))
             (if resultado
-              (vec (concat (drop-last 2 pila) [1]))
-              (vec (concat (drop-last 2 pila) [0]))
+              (conj (vec (drop-last 2 pila)) 1)
+              (conj (vec (drop-last 2 pila)) 0)
             )
             pila ; error en la operacion
           )
