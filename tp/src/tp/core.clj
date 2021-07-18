@@ -732,18 +732,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn palabra-reservada? [x]
   (case (str x)
+    "BEGIN" true
     "CALL" true
     "CONST" true
-    "VAR" true
-    "PROCEDURE" true
-    "BEGIN" true
-    "IF" true
-    "WHILE" true
-    "ODD" true
-    "WRITELN" true
-    "READLN" true
-    "WRITE" true
+    "DO" true
     "END" true
+    "IF" true
+    "READLN" true
+    "ODD" true
+    "PROCEDURE" true
+    "THEN" true
+    "VAR" true
+    "WHILE" true
+    "WRITELN" true
+    "WRITE" true
     false
   )
 )
@@ -1199,6 +1201,7 @@
     (= '>= op) 'GTE
     (= '< op) 'LT
     (= '<= op) 'LTE
+    (= '<> op) 'NEQ
     :else
       nil
   )
