@@ -735,13 +735,13 @@
     "BEGIN" true
     "CALL" true
     "CONST" true
-    "DO" true
+    ;"DO" true
     "END" true
     "IF" true
     "READLN" true
     "ODD" true
     "PROCEDURE" true
-    "THEN" true
+    ;"THEN" true
     "VAR" true
     "WHILE" true
     "WRITELN" true
@@ -1212,10 +1212,7 @@
         (operador-relacional operador)
       )
       (let [bytecode (bytecode amb) operacion (operador-relacional operador)]
-        (if (some #{operacion} bytecode) 
-          amb
           (assoc amb 6 (conj bytecode operacion))
-        )
       )
       amb
   )   
