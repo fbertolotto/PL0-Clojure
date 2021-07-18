@@ -591,7 +591,6 @@
   (let [fetched (cod cont-prg)
         opcode (if (symbol? fetched) fetched (first fetched))]
     (case opcode
-      TEST [cod mem cont-prg pila-dat pila-llam]
       HLT nil
       IN (let [entr (try (Integer/parseInt (read-line)) (catch Exception e ""))]
            (if (integer? entr)
@@ -616,7 +615,7 @@
 
       ; PFI: Coloca en la pila de datos un valor que forma parte de la instruccion (PUSH FROM INSTRUCTION: direccionamiento inmediato)
       ; e incrementa el contador de programa 
-      PFI (recur cod mem (inc cont-prg) (conj pila-dat (second fetched) ) pila-llam)
+      PFI (recur cod mem (inc cont-prg) (conj pila-dat (second fetched)) pila-llam)
 
       ; ADD: Reemplaza los dos valores ubicados en el tope de la pila de datos por su suma e incrementa el contador de programa 
       ADD (recur cod mem (inc cont-prg) (aplicar-aritmetico + pila-dat) pila-llam)
@@ -677,7 +676,7 @@
       ; de programa por la direccion que forma parte de la instruccion
       CAL (let [nuevo-contador (second fetched)]
             (recur cod mem nuevo-contador pila-dat (conj pila-llam (inc cont-prg)))
-      )
+          )
       
       ; RET: Saca una direccion de la pila de llamadas y la coloca en el contador de programa
       RET (let [nuevo-contador (last pila-llam)]
@@ -708,7 +707,7 @@
 ; Se consiguen las cadenas y se eliminan las impares.
 ; esto es porque en las pos impares quedaron las cadenas intermedias.
 (defn encontrar-strings [s]
-  (take-nth 2 (rest (clojure.string/split (re-find #"'.*'" s)  #"'")))
+  (take-nth 2 (drop 1 (clojure.string/split (re-find #"'.*'" s)  #"'")))
 )
 (defn a-mayusculas-salvo-strings [s]
   (if (re-find #"'.*'" s)
@@ -735,13 +734,13 @@
     "BEGIN" true
     "CALL" true
     "CONST" true
-    ;"DO" true
+    "DO" true
     "END" true
     "IF" true
     "READLN" true
     "ODD" true
     "PROCEDURE" true
-    ;"THEN" true
+    "THEN" true
     "VAR" true
     "WHILE" true
     "WRITELN" true
@@ -1176,7 +1175,6 @@
     amb
   )
 )
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Recibe un ambiente y un operador relacional de PL/0. Si el estado no es :sin-errores o si el operador no es
