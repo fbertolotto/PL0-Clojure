@@ -401,7 +401,7 @@
         )
     )
     (is (= (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '/)
-          '[nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD DIV]]
+          '[nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD]]
         )
     )
   )

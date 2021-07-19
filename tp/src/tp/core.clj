@@ -1235,27 +1235,9 @@
 ; user=> (generar-signo [nil () [] :sin-errores '[[0] [[X VAR 0]]] 1 '[MUL ADD]] '-)
 ;                       [nil () [] :sin-errores [[0] [[X VAR 0]]] 1 [MUL ADD NEG]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn operador-monadico [op]
-  (cond
-    (= '+ op) 'ADD
-    (= '- op) 'NEG
-    (= '* op) 'MUL
-    (= '/ op) 'DIV
-    :else
-      nil
-  )
-)
 (defn generar-signo [amb signo]
-  (if (and 
-        (= (estado amb) :sin-errores)
-        (operador-monadico signo)
-      )
-      (let [bytecode (bytecode amb) operacion (operador-monadico signo)]
-        (if (some #{operacion} bytecode) 
-          amb
-          (assoc amb 6 (conj bytecode operacion))
-        )
-      )
+  (if (and (= (estado amb) :sin-errores) (= '- signo))
+      (assoc amb 6 (conj (bytecode amb) 'NEG))
       amb
   )   
 )
